@@ -20,6 +20,8 @@ import java.util.UUID;
 
 import nodomain.freeyourgadget.gadgetbridge.Logging;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventBatteryInfo;
+import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventCallControl;
+import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventMusicControl;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventVersionInfo;
 import nodomain.freeyourgadget.gadgetbridge.devices.dafit.DafitConstants;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
@@ -40,6 +42,8 @@ import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.battery.Batter
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.battery.BatteryInfoProfile;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.deviceinfo.DeviceInfo;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.deviceinfo.DeviceInfoProfile;
+import nodomain.freeyourgadget.gadgetbridge.util.NotificationUtils;
+import nodomain.freeyourgadget.gadgetbridge.util.StringUtils;
 
 // TODO: figure out the training data
 
@@ -143,7 +147,46 @@ public class MT863DeviceSupport extends AbstractBTLEDeviceSupport {
 
     private boolean handlePacket(byte packetType, byte[] payload)
     {
-        LOG.warn("Got packet " + packetType + ": " + Logging.formatBytes(payload));
+        if (packetType == DafitConstants.CMD_NOTIFY_PHONE_OPERATION)
+        {
+            byte operation = payload[0];
+            if (operation == DafitConstants.ARG_OPERATION_PLAY_PAUSE)
+            {
+                GBDeviceEventMusicControl musicCmd = new GBDeviceEventMusicControl();
+                musicCmd.event = GBDeviceEventMusicControl.Event.PLAYPAUSE;
+                evaluateGBDeviceEvent(musicCmd);
+                return true;
+            }
+            if (operation == DafitConstants.ARG_OPERATION_PREV_SONG)
+            {
+                GBDeviceEventMusicControl musicCmd = new GBDeviceEventMusicControl();
+                musicCmd.event = GBDeviceEventMusicControl.Event.PREVIOUS;
+                evaluateGBDeviceEvent(musicCmd);
+                return true;
+            }
+            if (operation == DafitConstants.ARG_OPERATION_NEXT_SONG)
+            {
+                GBDeviceEventMusicControl musicCmd = new GBDeviceEventMusicControl();
+                musicCmd.event = GBDeviceEventMusicControl.Event.NEXT;
+                evaluateGBDeviceEvent(musicCmd);
+                return true;
+            }
+            if (operation == DafitConstants.ARG_OPERATION_DROP_INCOMING_CALL)
+            {
+                GBDeviceEventCallControl callCmd = new GBDeviceEventCallControl();
+                callCmd.event = GBDeviceEventCallControl.Event.REJECT;
+                evaluateGBDeviceEvent(callCmd);
+                return true;
+            }
+        }
+
+        if (packetType == DafitConstants.CMD_SWITCH_CAMERA_VIEW)
+        {
+            // TODO: trigger camera photo
+            return true;
+        }
+
+        LOG.warn("Unhandled packet " + packetType + ": " + Logging.formatBytes(payload));
         return false;
     }
 
@@ -165,9 +208,28 @@ public class MT863DeviceSupport extends AbstractBTLEDeviceSupport {
         return true;
     }
 
+    private void sendNotification(byte type, String text)
+    {
+        try {
+            TransactionBuilder builder = performInitialized("sendNotification");
+            byte[] str = text.getBytes();
+            byte[] payload = new byte[str.length + 1];
+            payload[0] = type;
+            System.arraycopy(str, 0, payload, 1, str.length);
+            sendPacket(builder, DafitPacketOut.buildPacket(DafitConstants.CMD_SEND_MESSAGE, payload));
+            builder.queue(getQueue());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void onNotification(NotificationSpec notificationSpec) {
-        // TODO
+        String text = NotificationUtils.getPreferredTextFor(notificationSpec, 40, 40, getContext());
+        if (text.isEmpty())
+            text = StringUtils.getFirstOf(StringUtils.getFirstOf(notificationSpec.title, notificationSpec.subject), notificationSpec.body);
+
+        sendNotification(DafitConstants.notificationType(notificationSpec.type), text);
     }
 
     @Override
@@ -177,7 +239,10 @@ public class MT863DeviceSupport extends AbstractBTLEDeviceSupport {
 
     @Override
     public void onSetCallState(CallSpec callSpec) {
-        // TODO
+        if (callSpec.command == CallSpec.CALL_INCOMING)
+            sendNotification(DafitConstants.NOTIFICATION_TYPE_CALL, NotificationUtils.getPreferredTextFor(callSpec));
+        else
+            sendNotification(DafitConstants.NOTIFICATION_TYPE_CALL_OFF_HOOK, "");
     }
 
     @Override
