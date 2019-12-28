@@ -28,6 +28,10 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.telephony.SmsManager;
 
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.FileProvider;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,14 +43,10 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
 
-import androidx.core.app.NotificationCompat;
-import androidx.core.content.FileProvider;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.activities.FindPhoneActivity;
 import nodomain.freeyourgadget.gadgetbridge.activities.appmanager.AbstractAppManagerFragment;
-import nodomain.freeyourgadget.gadgetbridge.activities.charts.ChartsHost;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEvent;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventAppInfo;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventBatteryInfo;
@@ -164,7 +164,6 @@ public abstract class AbstractDeviceSupport implements DeviceSupport {
             handleGBDeviceEvent((GBDeviceEventFmFrequency) deviceEvent);
         }
     }
-
     private void handleGBDeviceEvent(GBDeviceEventFindPhone deviceEvent) {
         Context context = getContext();
         LOG.info("Got GBDeviceEventFindPhone");
@@ -394,6 +393,7 @@ public abstract class AbstractDeviceSupport implements DeviceSupport {
 
         LocalBroadcastManager.getInstance(context).sendBroadcast(messageIntent);
     }
+
 
     public String customStringFilter(String inputString) {
         return inputString;

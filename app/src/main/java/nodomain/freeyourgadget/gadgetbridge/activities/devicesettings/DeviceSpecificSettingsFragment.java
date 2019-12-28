@@ -17,6 +17,7 @@
 package nodomain.freeyourgadget.gadgetbridge.activities.devicesettings;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.InputType;
 import android.widget.EditText;
 
@@ -78,7 +79,6 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
         args.putIntArray("supportedSettings", supportedSettings);
         setArguments(args);
     }
-
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -225,7 +225,6 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
 
         final Preference nightMode = findPreference(PREF_NIGHT_MODE);
         if (nightMode != null) {
-
             nightMode.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object newVal) {
@@ -246,64 +245,9 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
         }
 
 
-        String doNotDisturbState = prefs.getString(MiBandConst.PREF_DO_NOT_DISTURB, PREF_DO_NOT_DISTURB_OFF);
-        boolean doNotDisturbScheduled = doNotDisturbState.equals(PREF_DO_NOT_DISTURB_SCHEDULED);
-
-        final Preference doNotDisturbStart = findPreference(PREF_DO_NOT_DISTURB_START);
-        if (doNotDisturbStart != null) {
-            doNotDisturbStart.setEnabled(doNotDisturbScheduled);
-            doNotDisturbStart.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newVal) {
-                    invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            GBApplication.deviceService().onSendConfiguration(PREF_DO_NOT_DISTURB_START);
-                        }
-                    });
-                    return true;
-                }
-            });
-        }
-
-        final Preference doNotDisturbEnd = findPreference(PREF_DO_NOT_DISTURB_END);
-        if (doNotDisturbEnd != null) {
-            doNotDisturbEnd.setEnabled(doNotDisturbScheduled);
-            doNotDisturbEnd.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newVal) {
-                    invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            GBApplication.deviceService().onSendConfiguration(PREF_DO_NOT_DISTURB_END);
-                        }
-                    });
-                    return true;
-                }
-            });
-        }
-
-        final Preference doNotDisturb = findPreference(PREF_DO_NOT_DISTURB);
-        if (doNotDisturb != null) {
-            doNotDisturb.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newVal) {
-                    final boolean scheduled = PREF_DO_NOT_DISTURB_SCHEDULED.equals(newVal.toString());
-
-                    Objects.requireNonNull(doNotDisturbStart).setEnabled(scheduled);
-                    Objects.requireNonNull(doNotDisturbEnd).setEnabled(scheduled);
-
-                    invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            GBApplication.deviceService().onSendConfiguration(PREF_DO_NOT_DISTURB);
-                        }
-                    });
-                    return true;
-                }
-            });
-        }
-
+        addPreferenceHandlerFor(PREF_DO_NOT_DISTURB);
+        addPreferenceHandlerFor(PREF_DO_NOT_DISTURB_START);
+        addPreferenceHandlerFor(PREF_DO_NOT_DISTURB_END);
         addPreferenceHandlerFor(PREF_SWIPE_UNLOCK);
         addPreferenceHandlerFor(PREF_MI2_DATEFORMAT);
         addPreferenceHandlerFor(PREF_DATEFORMAT);
@@ -315,7 +259,6 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
         addPreferenceHandlerFor(PREF_TIMEFORMAT);
 
         String displayOnLiftState = prefs.getString(PREF_ACTIVATE_DISPLAY_ON_LIFT, PREF_DO_NOT_DISTURB_OFF);
-        boolean displayOnLiftScheduled = displayOnLiftState.equals(PREF_DO_NOT_DISTURB_SCHEDULED);
 
         final Preference rotateWristCycleInfo = findPreference(PREF_MI2_ROTATE_WRIST_TO_SWITCH_INFO);
         if (rotateWristCycleInfo != null) {
@@ -334,48 +277,14 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
             });
         }
 
-        final Preference displayOnLiftStart = findPreference(PREF_DISPLAY_ON_LIFT_START);
-        if (displayOnLiftStart != null) {
-            displayOnLiftStart.setEnabled(displayOnLiftScheduled);
-            displayOnLiftStart.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newVal) {
-                    invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            GBApplication.deviceService().onSendConfiguration(PREF_DISPLAY_ON_LIFT_START);
-                        }
-                    });
-                    return true;
-                }
-            });
-        }
-
-        final Preference displayOnLiftEnd = findPreference(PREF_DISPLAY_ON_LIFT_END);
-        if (displayOnLiftEnd != null) {
-            displayOnLiftEnd.setEnabled(displayOnLiftScheduled);
-            displayOnLiftEnd.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newVal) {
-                    invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            GBApplication.deviceService().onSendConfiguration(PREF_DISPLAY_ON_LIFT_END);
-                        }
-                    });
-                    return true;
-                }
-            });
-        }
-
+        addPreferenceHandlerFor(PREF_ACTIVATE_DISPLAY_ON_LIFT);
+        addPreferenceHandlerFor(PREF_DISPLAY_ON_LIFT_START);
+        addPreferenceHandlerFor(PREF_DISPLAY_ON_LIFT_END);
         final Preference displayOnLift = findPreference(PREF_ACTIVATE_DISPLAY_ON_LIFT);
         if (displayOnLift != null) {
             displayOnLift.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object newVal) {
-                    final boolean scheduled = PREF_DO_NOT_DISTURB_SCHEDULED.equals(newVal.toString());
-                    Objects.requireNonNull(displayOnLiftStart).setEnabled(scheduled);
-                    Objects.requireNonNull(displayOnLiftEnd).setEnabled(scheduled);
                     if (rotateWristCycleInfo != null) {
                         rotateWristCycleInfo.setEnabled(!PREF_DO_NOT_DISTURB_OFF.equals(newVal.toString()));
                     }
