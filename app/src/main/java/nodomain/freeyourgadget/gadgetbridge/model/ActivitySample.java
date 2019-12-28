@@ -88,4 +88,52 @@ public interface ActivitySample extends TimeStamped {
      * @param value the value in bpm
      */
     void setHeartRate(int value);
+
+    /**
+     * Returns the systolic (upper) part of blood pressure measured at the
+     * corresponding timestamp. The value is returned in mmHg, in the range
+     * from 0-255, where 255 is an illegal value (e.g. due to a bad measurement)
+     *
+     * @return the systolic part of blood pressure in mmHg, or -1 if none
+     */
+    int getBloodPressureSystolic();
+
+    /**
+     * Sets the systolic (upper) part of blood pressure of this sample.
+     *
+     * @param value the value in mmHg
+     */
+    void setBloodPressureSystolic(int value);
+
+    /**
+     * Returns the diastolic (lower) part of blood pressure measured at the
+     * corresponding timestamp. The value is returned in mmHg, in the range
+     * from 0-255, where 255 is an illegal value (e.g. due to a bad measurement)
+     *
+     * @return the systolic part of blood pressure in mmHg, or -1 if none
+     */
+    int getBloodPressureDiastolic();
+
+    /**
+     * Sets the diastolic (lower) part of blood pressure of this sample.
+     *
+     * @param value the value in mmHg
+     */
+    void setBloodPressureDiastolic(int value);
+
+    /**
+     * Returns the blood oxidation measured at the corresponding timestamp.
+     * The value is returned in %, in the range from 0-100, where 255 is
+     * an illegal value (e.g. due to a bad measurement)
+     *
+     * @return the of blood oxidation in %, or -1 if none
+     */
+    int getBloodOxidation();
+
+    /**
+     * Sets the diastolic (lower) part of blood pressure of this sample.
+     *
+     * @param value the value in %
+     */
+    void setBloodOxidation(int value);
 }
