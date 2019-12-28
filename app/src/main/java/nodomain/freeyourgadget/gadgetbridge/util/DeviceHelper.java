@@ -44,6 +44,7 @@ import nodomain.freeyourgadget.gadgetbridge.devices.DeviceCoordinator;
 import nodomain.freeyourgadget.gadgetbridge.devices.UnknownDeviceCoordinator;
 import nodomain.freeyourgadget.gadgetbridge.devices.banglejs.BangleJSCoordinator;
 import nodomain.freeyourgadget.gadgetbridge.devices.casiogb6900.CasioGB6900DeviceCoordinator;
+import nodomain.freeyourgadget.gadgetbridge.devices.dafit.MT863DeviceCoordinator;
 import nodomain.freeyourgadget.gadgetbridge.devices.hplus.EXRIZUK8Coordinator;
 import nodomain.freeyourgadget.gadgetbridge.devices.hplus.HPlusCoordinator;
 import nodomain.freeyourgadget.gadgetbridge.devices.hplus.MakibesF68Coordinator;
@@ -240,6 +241,7 @@ public class DeviceHelper {
         result.add(new MijiaLywsd02Coordinator());
         result.add(new MakibesHR3Coordinator());
         result.add(new BangleJSCoordinator());
+        result.add(new MT863DeviceCoordinator());
 
         return result;
     }
