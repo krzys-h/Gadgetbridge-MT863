@@ -133,7 +133,7 @@ public class MT863DeviceCoordinator extends AbstractDeviceCoordinator {
 
     @Override
     public boolean supportsWeather() {
-        return false;
+        return true;
     }
 
     @Override

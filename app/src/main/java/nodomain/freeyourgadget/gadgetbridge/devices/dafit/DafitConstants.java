@@ -269,4 +269,41 @@ public class DafitConstants {
                 return NOTIFICATION_TYPE_MESSAGE_OTHER;
         }
     }
+
+
+    // Weather types
+    public static final byte WEATHER_CLOUDY = 0;
+    public static final byte WEATHER_FOGGY = 1;
+    public static final byte WEATHER_OVERCAST = 2;
+    public static final byte WEATHER_RAINY = 3;
+    public static final byte WEATHER_SNOWY = 4;
+    public static final byte WEATHER_SUNNY = 5;
+    public static final byte WEATHER_SANDSTORM = 6; // aka "wind", according to the image
+    public static final byte WEATHER_HAZE = 7; // it's basically very big fog :P
+    // NOTE: values > 7 give random glitchy crap as images :D
+
+    public static byte openWeatherConditionToDafitConditionId(int openWeatherMapCondition) {
+        int openWeatherMapGroup = openWeatherMapCondition / 100;
+        switch (openWeatherMapGroup) {
+            case 2: // thunderstorm
+            case 3: // drizzle
+            case 5: // rain
+                return DafitConstants.WEATHER_RAINY;
+            case 6: // snow
+                return DafitConstants.WEATHER_SNOWY;
+            case 7: // fog
+                return DafitConstants.WEATHER_FOGGY;
+            case 8: // clear / clouds
+                if (openWeatherMapCondition <= 801) // few clouds
+                    return DafitConstants.WEATHER_SUNNY;
+                if (openWeatherMapCondition >= 804) // overcast clouds
+                    return DafitConstants.WEATHER_CLOUDY;
+                return DafitConstants.WEATHER_OVERCAST;
+            case 9: // extreme
+            default:
+                if (openWeatherMapCondition == 905) // windy
+                    return DafitConstants.WEATHER_SANDSTORM;
+                return DafitConstants.WEATHER_HAZE;
+        }
+    }
 }
