@@ -23,6 +23,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.InputType;
+import android.view.View;
 import android.widget.EditText;
 
 import androidx.annotation.NonNull;
@@ -30,6 +31,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.preference.EditTextPreference;
+import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
@@ -40,9 +42,12 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Objects;
+import java.util.Set;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventConfigurationRead;
+import nodomain.freeyourgadget.gadgetbridge.devices.dafit.DafitConstants;
+import nodomain.freeyourgadget.gadgetbridge.devices.dafit.settings.DafitEnumLanguage;
 import nodomain.freeyourgadget.gadgetbridge.devices.huami.HuamiConst;
 import nodomain.freeyourgadget.gadgetbridge.devices.makibeshr3.MakibesHR3Constants;
 import nodomain.freeyourgadget.gadgetbridge.devices.miband.MiBandConst;
@@ -52,6 +57,7 @@ import nodomain.freeyourgadget.gadgetbridge.util.XTimePreference;
 import nodomain.freeyourgadget.gadgetbridge.util.XTimePreferenceFragment;
 
 import static nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsPreferenceConst.PREF_DATEFORMAT;
+import static nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsPreferenceConst.PREF_MEASUREMENTSYSTEM;
 import static nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsPreferenceConst.PREF_SCREEN_ORIENTATION;
 import static nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsPreferenceConst.PREF_TIMEFORMAT;
 import static nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsPreferenceConst.PREF_WEARLOCATION;
@@ -181,6 +187,9 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
         final Preference pref = findPreference(config);
         if (pref != null)
         {
+            if (config.equals(DafitConstants.PREF_LANGUAGE))
+                updateDafitLanguageList((ListPreference) pref);
+
             pref.setEnabled(event == GBDeviceEventConfigurationRead.Event.SUCCESS);
 
             // TODO: this is an EXTREMLY ugly hack to refresh the property. This works, why don't
@@ -326,6 +335,19 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
         addPreferenceHandlerFor(PREF_WEARLOCATION);
         addPreferenceHandlerFor(PREF_SCREEN_ORIENTATION);
         addPreferenceHandlerFor(PREF_TIMEFORMAT);
+        addPreferenceHandlerFor(PREF_MEASUREMENTSYSTEM);
+        addPreferenceHandlerFor(DafitConstants.PREF_WATCH_FACE);
+        addPreferenceHandlerFor(DafitConstants.PREF_LANGUAGE);
+        addPreferenceHandlerFor(DafitConstants.PREF_DEVICE_VERSION);
+        addPreferenceHandlerFor(DafitConstants.PREF_SEDENTARY_REMINDER);
+        addPreferenceHandlerFor(DafitConstants.PREF_SEDENTARY_REMINDER_PERIOD);
+        addPreferenceHandlerFor(DafitConstants.PREF_SEDENTARY_REMINDER_STEPS);
+        addPreferenceHandlerFor(DafitConstants.PREF_SEDENTARY_REMINDER_START);
+        addPreferenceHandlerFor(DafitConstants.PREF_SEDENTARY_REMINDER_END);
+
+        ListPreference dafitLanguage = findPreference(DafitConstants.PREF_LANGUAGE);
+        if (dafitLanguage != null)
+            updateDafitLanguageList(dafitLanguage);
 
         String displayOnLiftState = prefs.getString(PREF_ACTIVATE_DISPLAY_ON_LIFT, PREF_DO_NOT_DISTURB_OFF);
 
@@ -374,6 +396,26 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
         setInputTypeFor(MiBandConst.PREF_MIBAND_DEVICE_TIME_OFFSET_HOURS, InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
         setInputTypeFor(MakibesHR3Constants.PREF_FIND_PHONE_DURATION, InputType.TYPE_CLASS_NUMBER);
         setInputTypeFor(DeviceSettingsPreferenceConst.PREF_RESERVER_ALARMS_CALENDAR, InputType.TYPE_CLASS_NUMBER);
+    }
+
+    private void updateDafitLanguageList(ListPreference dafitLanguage) {
+        DafitEnumLanguage[] languages = DafitEnumLanguage.values();
+        Set<String> supportedLanguages = getPreferenceManager().getSharedPreferences().getStringSet(DafitConstants.PREF_LANGUAGE_SUPPORT, null);
+
+        String[] entries = new String[languages.length];
+        String[] values = new String[languages.length];
+
+        for(int i = 0; i < languages.length; i++)
+        {
+            values[i] = String.valueOf(languages[i].value());
+            entries[i] = languages[i].name().replace("LANGUAGE_", "");
+            entries[i] = entries[i].substring(0, 1).toUpperCase() + entries[i].substring(1).toLowerCase();
+            if (supportedLanguages != null && !supportedLanguages.contains(values[i]))
+                entries[i] += " (not supported)";
+        }
+
+        dafitLanguage.setEntries(entries);
+        dafitLanguage.setEntryValues(values);
     }
 
     static DeviceSpecificSettingsFragment newInstance(String settingsFileSuffix, @NonNull int[] supportedSettings) {

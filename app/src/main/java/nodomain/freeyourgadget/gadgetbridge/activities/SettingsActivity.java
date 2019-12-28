@@ -52,12 +52,13 @@ import java.util.Locale;
 import nodomain.freeyourgadget.gadgetbridge.BuildConfig;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
+import nodomain.freeyourgadget.gadgetbridge.activities.charts.ChartsPreferencesActivity;
 import nodomain.freeyourgadget.gadgetbridge.database.PeriodicExporter;
 import nodomain.freeyourgadget.gadgetbridge.devices.DeviceManager;
 import nodomain.freeyourgadget.gadgetbridge.devices.miband.MiBandPreferencesActivity;
 import nodomain.freeyourgadget.gadgetbridge.devices.qhybrid.ConfigActivity;
 import nodomain.freeyourgadget.gadgetbridge.devices.zetime.ZeTimePreferenceActivity;
-import nodomain.freeyourgadget.gadgetbridge.activities.charts.ChartsPreferencesActivity;
+import nodomain.freeyourgadget.gadgetbridge.model.ActivityUser;
 import nodomain.freeyourgadget.gadgetbridge.model.CannedMessagesSpec;
 import nodomain.freeyourgadget.gadgetbridge.util.AndroidUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.FileUtils;
@@ -82,6 +83,8 @@ public class SettingsActivity extends AbstractSettingsActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preferences);
+
+        //pref = findPreference("pref_category_activity_personal");
     }
 
     @Override
@@ -219,20 +222,17 @@ public class SettingsActivity extends AbstractSettingsActivity {
 
         });
 
-        final Preference unit = findPreference(PREF_MEASUREMENT_SYSTEM);
-        unit.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-            @Override
-            public boolean onPreferenceChange(Preference preference, Object newVal) {
-                invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        GBApplication.deviceService().onSendConfiguration(PREF_MEASUREMENT_SYSTEM);
-                    }
-                });
-                preference.setSummary(newVal.toString());
-                return true;
-            }
-        });
+        addPreferenceHandlerFor(PREF_MEASUREMENT_SYSTEM);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_NAME);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_YEAR_OF_BIRTH);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_GENDER);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_HEIGHT_CM);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_WEIGHT_KG);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_SLEEP_DURATION);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_STEPS_GOAL);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_CALORIES_BURNT);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_DISTANCE_METERS);
+        addPreferenceHandlerFor(ActivityUser.PREF_USER_ACTIVETIME_MINUTES);
 
         if (!GBApplication.isRunningMarshmallowOrLater()) {
             pref = findPreference("notification_filter");
@@ -402,6 +402,24 @@ public class SettingsActivity extends AbstractSettingsActivity {
         audioPlayer.setEntries(newEntries);
         audioPlayer.setEntryValues(newValues);
         audioPlayer.setDefaultValue(newValues[0]);
+    }
+
+    private void addPreferenceHandlerFor(final String preferenceKey) {
+        Preference pref = findPreference(preferenceKey);
+        if (pref != null) {
+            pref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                public boolean onPreferenceChange(Preference preference, Object newVal) {
+                    invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            GBApplication.deviceService().onSendConfiguration(preferenceKey);
+                        }
+                    });
+                    preference.setSummary(newVal.toString());
+                    return true;
+                }
+            });
+        }
     }
 
     @Override

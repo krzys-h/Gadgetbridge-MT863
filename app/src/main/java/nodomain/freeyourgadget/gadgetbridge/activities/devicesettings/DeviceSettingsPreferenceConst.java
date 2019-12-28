@@ -16,9 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.activities.devicesettings;
 
+import nodomain.freeyourgadget.gadgetbridge.activities.SettingsActivity;
+
 public class DeviceSettingsPreferenceConst {
     public static final String PREF_DATEFORMAT = "dateformat";
     public static final String PREF_TIMEFORMAT = "timeformat";
+    public static final String PREF_MEASUREMENTSYSTEM = SettingsActivity.PREF_MEASUREMENT_SYSTEM;
     public static final String PREF_WEARLOCATION = "wearlocation";
     public static final String PREF_SCREEN_ORIENTATION = "screen_orientation";
     public static final String PREF_RESERVER_ALARMS_CALENDAR = "reserve_alarms_calendar";
