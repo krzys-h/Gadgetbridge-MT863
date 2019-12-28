@@ -11,8 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Objects;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import nodomain.freeyourgadget.gadgetbridge.Logging;
@@ -86,6 +89,7 @@ public class MT863DeviceSupport extends AbstractBTLEDeviceSupport {
         builder.add(new SetDeviceStateAction(getDevice(), GBDevice.State.INITIALIZING, getContext()));
         builder.notify(getCharacteristic(DafitConstants.UUID_CHARACTERISTIC_DATA_IN), true);
         deviceInfoProfile.requestDeviceInfo(builder);
+        setTime(builder);
         batteryInfoProfile.requestBatteryInfo(builder);
         batteryInfoProfile.enableNotify(builder);
         builder.add(new SetDeviceStateAction(getDevice(), GBDevice.State.INITIALIZED, getContext()));
@@ -181,9 +185,27 @@ public class MT863DeviceSupport extends AbstractBTLEDeviceSupport {
         // not supported :(
     }
 
+    private void setTime(TransactionBuilder builder) {
+        TimeZone tzGmt8 = TimeZone.getTimeZone("GMT+8"); // The watch is hardcoded to GMT+8 internally...
+        TimeZone tzCurrent = TimeZone.getDefault();
+        long timeInUTC = Calendar.getInstance().getTimeInMillis();
+        long timeInGmt8 = timeInUTC - tzGmt8.getOffset(timeInUTC) + tzCurrent.getOffset(timeInUTC);
+
+        ByteBuffer buffer = ByteBuffer.allocate(5);
+        buffer.putInt((int)(timeInGmt8 / 1000));
+        buffer.put((byte)8); // I guess this means GMT+8 but changing it has no effect at all (it was hardcoded in the original app too)
+        sendPacket(builder, DafitPacketOut.buildPacket(DafitConstants.CMD_SYNC_TIME, buffer.array()));
+    }
+
     @Override
     public void onSetTime() {
-        // TODO
+        try {
+            TransactionBuilder builder = performInitialized("onSetTime");
+            setTime(builder);
+            builder.queue(getQueue());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
