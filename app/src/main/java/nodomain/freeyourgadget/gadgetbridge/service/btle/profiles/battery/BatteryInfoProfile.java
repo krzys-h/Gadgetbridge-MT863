@@ -32,6 +32,9 @@ import nodomain.freeyourgadget.gadgetbridge.service.btle.TransactionBuilder;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.AbstractBleProfile;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.ValueDecoder;
 
+/**
+ * https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.battery_service.xml
+ */
 public class BatteryInfoProfile<T extends AbstractBTLEDeviceSupport> extends AbstractBleProfile {
     private static final Logger LOG = LoggerFactory.getLogger(BatteryInfoProfile.class);
 
@@ -53,8 +56,11 @@ public class BatteryInfoProfile<T extends AbstractBTLEDeviceSupport> extends Abs
         builder.read(getCharacteristic(UUID_CHARACTERISTIC_BATTERY_LEVEL));
     }
 
-    public void enableNotifiy() {
-        // TODO: notification
+    public void enableNotify(TransactionBuilder builder) {
+        if ((getCharacteristic(UUID_CHARACTERISTIC_BATTERY_LEVEL).getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0)
+            throw new UnsupportedOperationException("This device does not support battery level notification");
+
+        builder.notify(getCharacteristic(UUID_CHARACTERISTIC_BATTERY_LEVEL), true);
     }
 
     @Override
@@ -62,13 +68,23 @@ public class BatteryInfoProfile<T extends AbstractBTLEDeviceSupport> extends Abs
         if (status == BluetoothGatt.GATT_SUCCESS) {
             UUID charUuid = characteristic.getUuid();
             if (charUuid.equals(UUID_CHARACTERISTIC_BATTERY_LEVEL)) {
+                LOG.info("Battery level from manual read: " + GattCharacteristic.toString(characteristic));
                 handleBatteryLevel(gatt, characteristic);
                 return true;
-            } else {
-                LOG.info("Unexpected onCharacteristicRead: " + GattCharacteristic.toString(characteristic));
             }
         } else {
             LOG.warn("error reading from characteristic:" + GattCharacteristic.toString(characteristic));
+        }
+        return false;
+    }
+
+    @Override
+    public boolean onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+        UUID charUuid = characteristic.getUuid();
+        if (charUuid.equals(UUID_CHARACTERISTIC_BATTERY_LEVEL)) {
+            LOG.info("Battery level from notification: " + GattCharacteristic.toString(characteristic));
+            handleBatteryLevel(gatt, characteristic);
+            return true;
         }
         return false;
     }

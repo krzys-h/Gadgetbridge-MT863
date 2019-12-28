@@ -31,6 +31,9 @@ import nodomain.freeyourgadget.gadgetbridge.service.btle.GattService;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.TransactionBuilder;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.AbstractBleProfile;
 
+/**
+ * https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.device_information.xml
+ */
 public class DeviceInfoProfile<T extends AbstractBTLEDeviceSupport> extends AbstractBleProfile {
     private static final Logger LOG = LoggerFactory.getLogger(DeviceInfoProfile.class);
 
@@ -99,8 +102,6 @@ public class DeviceInfoProfile<T extends AbstractBTLEDeviceSupport> extends Abst
             } else if (charUuid.equals(UUID_CHARACTERISTIC_PNP_ID)) {
                 handlePnpId(gatt, characteristic);
                 return true;
-            } else {
-                LOG.info("Unexpected onCharacteristicRead: " + GattCharacteristic.toString(characteristic));
             }
         } else {
             LOG.warn("error reading from characteristic:" + GattCharacteristic.toString(characteristic));

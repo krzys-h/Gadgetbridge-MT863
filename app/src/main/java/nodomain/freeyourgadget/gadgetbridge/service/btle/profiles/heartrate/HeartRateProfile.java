@@ -23,21 +23,25 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
+
 import nodomain.freeyourgadget.gadgetbridge.service.btle.AbstractBTLEDeviceSupport;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacteristic;
+import nodomain.freeyourgadget.gadgetbridge.service.btle.GattService;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.TransactionBuilder;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.AbstractBleProfile;
 
 /**
- * https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.heart_rate.xml
+ * https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.heart_rate.xml
  */
 public class HeartRateProfile<T extends AbstractBTLEDeviceSupport> extends AbstractBleProfile<T> {
     private static final Logger LOG = LoggerFactory.getLogger(HeartRateProfile.class);
 
-    /**
-     * Returned when a request to the heart rate control point is not supported by the device
-     */
-    public static final int ERR_CONTROL_POINT_NOT_SUPPORTED = 0x80;
+    public static final UUID SERVICE_UUID = GattService.UUID_SERVICE_HEART_RATE;
+    public static final UUID UUID_CHARACTERISTIC_HEART_RATE_CONTROL_POINT = GattCharacteristic.UUID_CHARACTERISTIC_HEART_RATE_CONTROL_POINT;
+    public static final UUID UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT = GattCharacteristic.UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT;
+    public static final UUID UUID_CHARACTERISTIC_CLIENT_CHARACTERISTIC_CONFIG = GattCharacteristic.UUID_CHARACTERISTIC_CLIENT_CHARACTERISTIC_CONFIG;
+
 
     public HeartRateProfile(T support) {
         super(support);
@@ -52,16 +56,21 @@ public class HeartRateProfile<T extends AbstractBTLEDeviceSupport> extends Abstr
     }
 
     protected void writeToControlPoint(byte[] value, TransactionBuilder builder) {
-        builder.write(getCharacteristic(GattCharacteristic.UUID_CHARACTERISTIC_HEART_RATE_CONTROL_POINT), value);
+        builder.write(getCharacteristic(UUID_CHARACTERISTIC_HEART_RATE_CONTROL_POINT), value);
     }
 
     public void requestBodySensorLocation(TransactionBuilder builder) {
 
     }
 
+    public void enableNotify(TransactionBuilder builder) {
+        builder.notify(getCharacteristic(UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT), true);
+    }
+
     @Override
     public boolean onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-        if (GattCharacteristic.UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
+        UUID charUuid = characteristic.getUuid();
+        if (charUuid.equals(UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT)) {
             int flag = characteristic.getProperties();
             int format = -1;
             if ((flag & 0x01) != 0) {
