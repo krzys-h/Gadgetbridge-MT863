@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 
@@ -49,6 +50,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashSet;
@@ -63,10 +66,12 @@ import nodomain.freeyourgadget.gadgetbridge.database.DBAccess;
 import nodomain.freeyourgadget.gadgetbridge.database.DBHandler;
 import nodomain.freeyourgadget.gadgetbridge.devices.DeviceCoordinator;
 import nodomain.freeyourgadget.gadgetbridge.devices.SampleProvider;
+import nodomain.freeyourgadget.gadgetbridge.devices.miband.UserInfo;
 import nodomain.freeyourgadget.gadgetbridge.entities.AbstractActivitySample;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.model.ActivityKind;
 import nodomain.freeyourgadget.gadgetbridge.model.ActivitySample;
+import nodomain.freeyourgadget.gadgetbridge.model.ActivityUser;
 import nodomain.freeyourgadget.gadgetbridge.util.DateTimeUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.DeviceHelper;
 import nodomain.freeyourgadget.gadgetbridge.util.Prefs;
@@ -198,7 +203,7 @@ public abstract class AbstractChartFragment extends AbstractGBFragment {
 
         HEARTRATE_LABEL = getContext().getString(R.string.charts_legend_heartrate);
 
-        akActivity = new ActivityConfig(ActivityKind.TYPE_ACTIVITY, getString(R.string.abstract_chart_fragment_kind_activity), AK_ACTIVITY_COLOR);
+        akActivity = new ActivityConfig(ActivityKind.TYPE_ACTIVITY, supports_intensity ? getString(R.string.abstract_chart_fragment_kind_activity) : getString(R.string.abstract_chart_fragment_kind_steps), AK_ACTIVITY_COLOR);
         akLightSleep = new ActivityConfig(ActivityKind.TYPE_LIGHT_SLEEP, getString(R.string.abstract_chart_fragment_kind_light_sleep), AK_LIGHT_SLEEP_COLOR);
         akDeepSleep = new ActivityConfig(ActivityKind.TYPE_DEEP_SLEEP, getString(R.string.abstract_chart_fragment_kind_deep_sleep), AK_DEEP_SLEEP_COLOR);
         akNotWorn = new ActivityConfig(ActivityKind.TYPE_NOT_WORN, getString(R.string.abstract_chart_fragment_kind_not_worn), AK_NOT_WORN_COLOR);
@@ -420,6 +425,7 @@ public abstract class AbstractChartFragment extends AbstractGBFragment {
      */
     protected abstract void renderCharts();
 
+    private boolean supports_intensity = false; // TODO
     protected DefaultChartsData<LineData> refresh(GBDevice gbDevice, List<? extends ActivitySample> samples) {
 //        Calendar cal = GregorianCalendar.getInstance();
 //        cal.clear();
@@ -448,6 +454,8 @@ public abstract class AbstractChartFragment extends AbstractGBFragment {
             int lastHrSampleIndex = -1;
             HeartRateUtils heartRateUtilsInstance = HeartRateUtils.getInstance();
 
+            int steps = 0;
+
             for (int i = 0; i < numEntries; i++) {
                 ActivitySample sample = samples.get(i);
                 int type = sample.getKind();
@@ -468,6 +476,9 @@ public abstract class AbstractChartFragment extends AbstractGBFragment {
 
                 float movement = sample.getIntensity();
 
+                if (sample.getSteps() != ActivitySample.NOT_MEASURED)
+                    steps += sample.getSteps();
+
                 float value = movement;
                 switch (type) {
                     case ActivityKind.TYPE_DEEP_SLEEP:
@@ -478,7 +489,8 @@ public abstract class AbstractChartFragment extends AbstractGBFragment {
                             notWornEntries.add(createLineEntry(0, ts));
                             activityEntries.add(createLineEntry(0, ts));
                         }
-                        deepSleepEntries.add(createLineEntry(value + SleepUtils.Y_VALUE_DEEP_SLEEP, ts));
+                        deepSleepEntries.add(createLineEntry(supports_intensity ? value + SleepUtils.Y_VALUE_DEEP_SLEEP : 1.0f, ts));
+                        steps = 0;
                         break;
                     case ActivityKind.TYPE_LIGHT_SLEEP:
                         if (last_type != type) {
@@ -488,7 +500,8 @@ public abstract class AbstractChartFragment extends AbstractGBFragment {
                             notWornEntries.add(createLineEntry(0, ts));
                             activityEntries.add(createLineEntry(0, ts));
                         }
-                        lightSleepEntries.add(createLineEntry(value, ts));
+                        lightSleepEntries.add(createLineEntry(supports_intensity ? value : 1.0f, ts));
+                        steps = 0;
                         break;
                     case ActivityKind.TYPE_NOT_WORN:
                         if (last_type != type) {
@@ -498,7 +511,7 @@ public abstract class AbstractChartFragment extends AbstractGBFragment {
                             deepSleepEntries.add(createLineEntry(0, ts));
                             activityEntries.add(createLineEntry(0, ts));
                         }
-                        notWornEntries.add(createLineEntry(SleepUtils.Y_VALUE_DEEP_SLEEP, ts)); //a small value, just to show something on the graphs
+                        notWornEntries.add(createLineEntry(supports_intensity ? SleepUtils.Y_VALUE_DEEP_SLEEP : 1.0f, ts)); //a small value, just to show something on the graphs
                         break;
                     default:
 //                        short steps = sample.getSteps();
@@ -507,14 +520,14 @@ public abstract class AbstractChartFragment extends AbstractGBFragment {
 //                            movement = steps;
 //                        }
 //                        value = ((float) movement) / movement_divisor;
-                        if (last_type != type) {
+                        if (last_type != type && type != ActivityKind.TYPE_NOT_MEASURED) {
                             activityEntries.add(createLineEntry(0, ts - 1));
 
                             lightSleepEntries.add(createLineEntry(0, ts));
                             notWornEntries.add(createLineEntry(0, ts));
                             deepSleepEntries.add(createLineEntry(0, ts));
                         }
-                        activityEntries.add(createLineEntry(value, ts));
+                        activityEntries.add(createLineEntry(supports_intensity ? value : (float)steps / new ActivityUser().getStepsGoal() * 1.5f, ts));
                 }
                 if (hr && sample.getKind() != ActivityKind.TYPE_NOT_WORN && heartRateUtilsInstance.isValidHeartRateValue(sample.getHeartRate())) {
                     if (lastHrSampleIndex > -1 && ts - lastHrSampleIndex > 1800*HeartRateUtils.MAX_HR_MEASUREMENTS_GAP_MINUTES) {
@@ -550,18 +563,18 @@ public abstract class AbstractChartFragment extends AbstractGBFragment {
 //                        }
 //                    }
                 }
-                last_type = type;
+                if (type != ActivityKind.TYPE_NOT_MEASURED)
+                    last_type = type;
             }
 
-
             List<ILineDataSet> lineDataSets = new ArrayList<>();
-            LineDataSet activitySet = createDataSet(activityEntries, akActivity.color, "Activity");
+            LineDataSet activitySet = createDataSet(activityEntries, akActivity.color, akActivity.label);
             lineDataSets.add(activitySet);
-            LineDataSet deepSleepSet = createDataSet(deepSleepEntries, akDeepSleep.color, "Deep Sleep");
+            LineDataSet deepSleepSet = createDataSet(deepSleepEntries, akDeepSleep.color, akDeepSleep.label);
             lineDataSets.add(deepSleepSet);
-            LineDataSet lightSleepSet = createDataSet(lightSleepEntries, akLightSleep.color, "Light Sleep");
+            LineDataSet lightSleepSet = createDataSet(lightSleepEntries, akLightSleep.color, akLightSleep.label);
             lineDataSets.add(lightSleepSet);
-            LineDataSet notWornSet = createDataSet(notWornEntries, akNotWorn.color, "Not worn");
+            LineDataSet notWornSet = createDataSet(notWornEntries, akNotWorn.color, akNotWorn.label);
             lineDataSets.add(notWornSet);
 
             if (hr && heartrateEntries.size() > 0) {
