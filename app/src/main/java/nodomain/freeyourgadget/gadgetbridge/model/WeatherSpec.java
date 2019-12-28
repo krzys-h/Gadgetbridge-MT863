@@ -38,11 +38,11 @@ public class WeatherSpec implements Parcelable {
     public int timestamp;
     public String location;
     public int currentTemp;
-    public int currentConditionCode = 3200;
+    public int currentConditionCode = 3200; //openWeatherMap condition ID
     public String currentCondition;
     public int currentHumidity;
-    public int todayMaxTemp;
-    public int todayMinTemp;
+    public int todayMaxTemp; //kelvin
+    public int todayMinTemp; //kelvin
     public float windSpeed; //km per hour
     public int windDirection; //deg
 
