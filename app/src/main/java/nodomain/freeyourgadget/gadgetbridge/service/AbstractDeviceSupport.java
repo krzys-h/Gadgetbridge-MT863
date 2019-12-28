@@ -28,10 +28,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.telephony.SmsManager;
 
-import androidx.core.app.NotificationCompat;
-import androidx.core.content.FileProvider;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,14 +39,19 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
 
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.FileProvider;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.activities.FindPhoneActivity;
 import nodomain.freeyourgadget.gadgetbridge.activities.appmanager.AbstractAppManagerFragment;
+import nodomain.freeyourgadget.gadgetbridge.activities.charts.ChartsHost;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEvent;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventAppInfo;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventBatteryInfo;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventCallControl;
+import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventConfigurationRead;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventDisplayMessage;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventFindPhone;
 import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventFmFrequency;
@@ -162,6 +163,8 @@ public abstract class AbstractDeviceSupport implements DeviceSupport {
             handleGBDeviceEvent((GBDeviceEventLEDColor) deviceEvent);
         } else if (deviceEvent instanceof GBDeviceEventFmFrequency) {
             handleGBDeviceEvent((GBDeviceEventFmFrequency) deviceEvent);
+        } else if (deviceEvent instanceof GBDeviceEventConfigurationRead) {
+            handleGBDeviceEvent((GBDeviceEventConfigurationRead) deviceEvent);
         }
     }
     private void handleGBDeviceEvent(GBDeviceEventFindPhone deviceEvent) {
@@ -391,6 +394,13 @@ public abstract class AbstractDeviceSupport implements DeviceSupport {
         messageIntent.putExtra(GB.DISPLAY_MESSAGE_DURATION, message.duration);
         messageIntent.putExtra(GB.DISPLAY_MESSAGE_SEVERITY, message.severity);
 
+        LocalBroadcastManager.getInstance(context).sendBroadcast(messageIntent);
+    }
+
+    private void handleGBDeviceEvent(GBDeviceEventConfigurationRead deviceEvent) {
+        Intent messageIntent = new Intent(GB.ACTION_CONFIGURATION_READ);
+        messageIntent.putExtra(GB.CONFIGURATION_READ_CONFIG, deviceEvent.config);
+        messageIntent.putExtra(GB.CONFIGURATION_READ_EVENT, deviceEvent.event.ordinal());
         LocalBroadcastManager.getInstance(context).sendBroadcast(messageIntent);
     }
 
