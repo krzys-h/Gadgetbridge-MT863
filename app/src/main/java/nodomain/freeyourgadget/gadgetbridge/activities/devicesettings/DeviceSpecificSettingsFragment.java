@@ -16,26 +16,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.activities.devicesettings;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.InputType;
 import android.widget.EditText;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.preference.EditTextPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceScreen;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Objects;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
+import nodomain.freeyourgadget.gadgetbridge.deviceevents.GBDeviceEventConfigurationRead;
 import nodomain.freeyourgadget.gadgetbridge.devices.huami.HuamiConst;
 import nodomain.freeyourgadget.gadgetbridge.devices.makibeshr3.MakibesHR3Constants;
 import nodomain.freeyourgadget.gadgetbridge.devices.miband.MiBandConst;
+import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.Prefs;
 import nodomain.freeyourgadget.gadgetbridge.util.XTimePreference;
 import nodomain.freeyourgadget.gadgetbridge.util.XTimePreferenceFragment;
@@ -81,6 +92,34 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(GB.ACTION_CONFIGURATION_READ);
+        LocalBroadcastManager.getInstance(getContext()).registerReceiver(mReceiver, filter);
+    }
+
+    @Override
+    public void onDestroy() {
+        LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(mReceiver);
+
+        super.onDestroy();
+    }
+
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (GB.ACTION_CONFIGURATION_READ.equals(action)) {
+                String config = intent.getStringExtra(GB.CONFIGURATION_READ_CONFIG);
+                GBDeviceEventConfigurationRead.Event event = GBDeviceEventConfigurationRead.Event.values()[intent.getIntExtra(GB.CONFIGURATION_READ_EVENT, GBDeviceEventConfigurationRead.Event.SUCCESS.ordinal())];
+                onConfigurationReadStateChanged(config, event);
+            }
+        }
+    };
+
+    @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         Bundle arguments = getArguments();
         if (arguments == null) {
@@ -117,13 +156,43 @@ public class DeviceSpecificSettingsFragment extends PreferenceFragmentCompat {
             }
         }
         setChangeListener();
+        requestConfigurationRead();
     }
 
     /*
      * delayed execution so that the preferences are applied first
      */
+    private Handler mHandler = new Handler();
     private void invokeLater(Runnable runnable) {
-        getListView().post(runnable);
+        mHandler.post(runnable);
+    }
+
+    private void requestConfigurationRead() {
+        PreferenceScreen preferenceScreen = getPreferenceScreen();
+        for (int i = 0; i < preferenceScreen.getPreferenceCount(); i++)
+        {
+            Preference pref = preferenceScreen.getPreference(i);
+            if (pref.getKey() != null && !pref.getKey().isEmpty())
+                GBApplication.deviceService().onReadConfiguration(pref.getKey());
+        }
+    }
+
+    private void onConfigurationReadStateChanged(String config, GBDeviceEventConfigurationRead.Event event) {
+        final Preference pref = findPreference(config);
+        if (pref != null)
+        {
+            pref.setEnabled(event == GBDeviceEventConfigurationRead.Event.SUCCESS);
+
+            // TODO: this is an EXTREMLY ugly hack to refresh the property. This works, why don't
+            //       they expose any easy way to do it.
+            try {
+                Method method = Preference.class.getDeclaredMethod("dispatchSetInitialValue");
+                method.setAccessible(true);
+                method.invoke(pref);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void setChangeListener() {
