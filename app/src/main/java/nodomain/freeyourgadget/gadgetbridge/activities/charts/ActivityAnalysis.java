@@ -47,6 +47,8 @@ public class ActivityAnalysis {
         for (ActivitySample sample : samples) {
             ActivityAmount amount;
             switch (sample.getKind()) {
+                case ActivityKind.TYPE_NOT_MEASURED:
+                    continue;
                 case ActivityKind.TYPE_DEEP_SLEEP:
                     amount = deepSleep;
                     break;

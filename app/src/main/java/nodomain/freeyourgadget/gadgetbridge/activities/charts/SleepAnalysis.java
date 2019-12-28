@@ -39,6 +39,9 @@ public class SleepAnalysis {
         long durationSinceLastSleep = 0;
 
         for (ActivitySample sample : samples) {
+            if (sample.getKind() == ActivityKind.TYPE_NOT_MEASURED) {
+                continue;
+            }
             if (isSleep(sample)) {
                 if (sleepStart == null)
                     sleepStart = getDateFromSample(sample);
