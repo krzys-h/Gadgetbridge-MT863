@@ -72,6 +72,33 @@ public abstract class AbstractActivitySample implements ActivitySample {
         return NOT_MEASURED;
     }
 
+    @Override
+    public void setBloodPressureSystolic(int value) {
+    }
+
+    @Override
+    public int getBloodPressureSystolic() {
+        return NOT_MEASURED;
+    }
+
+    @Override
+    public void setBloodPressureDiastolic(int value) {
+    }
+
+    @Override
+    public int getBloodPressureDiastolic() {
+        return NOT_MEASURED;
+    }
+
+    @Override
+    public void setBloodOxidation(int value) {
+    }
+
+    @Override
+    public int getBloodOxidation() {
+        return NOT_MEASURED;
+    }
+
     public abstract void setDeviceId(long deviceId);
 
     public abstract long getDeviceId();
@@ -97,9 +124,14 @@ public abstract class AbstractActivitySample implements ActivitySample {
                 ", intensity=" + intensity +
                 ", steps=" + getSteps() +
                 ", heartrate=" + getHeartRate() +
+                ", bloodPressureSystolic=" + getBloodPressureSystolic() +
+                ", bloodPressureDiastolic=" + getBloodPressureDiastolic() +
+                ", bloodOxidation=" + getBloodOxidation() +
                 ", type=" + kind +
                 ", userId=" + getUserId() +
                 ", deviceId=" + getDeviceId() +
                 '}';
     }
+
+
 }
